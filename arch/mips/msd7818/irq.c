@@ -239,7 +239,7 @@ static inline unsigned int irq_ffs(unsigned int pending)
 #endif
 }
 
-static unsigned int __cpuinit get_c0_compare_int(void)
+unsigned int __cpuinit get_c0_compare_int(void)
 {
 	return CP0_LEGACY_COMPARE_IRQ;
 }

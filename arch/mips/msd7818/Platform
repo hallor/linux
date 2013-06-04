@@ -1,7 +1,6 @@
 #
-# Broadcom MSTAR boards
+# MStar MSD7818
 #
-platform-$(CONFIG_MSTAR)	+= msd7818/
-cflags-$(CONFIG_MSTAR)	+=					\
-		-I$(srctree)/arch/mips/include/asm/mach-mstar
-load-$(CONFIG_MSTAR)		:= 0xffffffff80001000
+platform-$(CONFIG_MSD7818)	+= msd7818/
+cflags-$(CONFIG_MSD7818)	+= -I$(srctree)/arch/mips/include/asm/mach-msd7818
+load-$(CONFIG_MSD7818)		:= 0xffffffff80001000

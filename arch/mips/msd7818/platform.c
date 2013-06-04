@@ -86,9 +86,9 @@ void __init prom_init(void)
 {
     int data;
     printk("%s()\n", __FUNCTION__);
-    UART16550_WRITE(UART_LCR, serial_in(UART_LCR) | UART_LCR_DLAB);
-    data = UART16550_READ(UART_DLL) | serial_in(UART_DLM) << 8;
-    UART16550_WRITE(UART_LCR, serial_in(UART_LCR) & ~UART_LCR_DLAB);
+    UART16550_WRITE(UART_LCR, UART16550_READ(UART_LCR) | UART_LCR_DLAB);
+    data = UART16550_READ(UART_DLL) | UART16550_READ(UART_DLM) << 8;
+    UART16550_WRITE(UART_LCR, UART16550_READ(UART_LCR) & ~UART_LCR_DLAB);
     printk("Serial divisor: %08x\n", data);
 }
 

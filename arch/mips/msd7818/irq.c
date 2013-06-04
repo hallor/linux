@@ -92,7 +92,6 @@ static void enable_msd7818_irq(struct irq_data *d)
 void disable_msd7818_irq(struct irq_data *d)
 {
     int eIntNum = d->irq;
-    prom_putchar('@');
     printk(KERN_ERR "%s() %d\n", __FUNCTION__, eIntNum);
     if (eIntNum == E_IRQ_FIQ_ALL)
     {

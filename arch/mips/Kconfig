@@ -87,6 +87,21 @@ config AR7
 	  Support for the Texas Instruments AR7 System-on-a-Chip
 	  family: TNETD7100, 7200 and 7300.
 
+config MSD7818
+	bool "MStar MSD7818"
+	select SYS_SUPPORTS_32BIT_KERNEL
+	select SYS_SUPPORTS_LITTLE_ENDIAN
+	select SYS_HAS_EARLY_PRINTK
+	select IRQ_CPU
+	select HAVE_CLK
+	select SYS_SUPPORTS_ZBOOT
+	select CEVT_R4K
+	select CSRC_R4K
+	select SYS_SUPPORTS_ZBOOT_UART16550
+	select SYS_HAS_CPU_MIPS32_R1
+	help
+		Support for MSTAR MSD7818
+
 config ATH79
 	bool "Atheros AR71XX/AR724X/AR913X based boards"
 	select ARCH_REQUIRE_GPIOLIB

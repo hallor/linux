@@ -27,6 +27,7 @@
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
 
+#include "irq_msd7818.h"
 // Inspired by various pieces of code
 
 // TODO: probably we need to fill this
@@ -76,7 +77,7 @@ void __init prom_free_prom_memory(void)
 #define UART_BASE 0x1F201300
 static struct plat_serial8250_port msd7818_uart_data[] = {
 {
-//    .irq = 8,
+    .irq = E_IRQ_UART,
     .regshift = 3,
     .flags		= (UPF_SKIP_TEST | UPF_FIXED_TYPE | UPF_FIXED_PORT | UPF_IOREMAP),
     .uartclk = 115200 * 16 * 66,

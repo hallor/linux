@@ -88,17 +88,9 @@ static void enable_msd7818_irq(struct irq_data *d)
     }
 }
 
-
-// Just notify us (probably not needed)
-static void ack_msd7818_irq(struct irq_data *d)
-{
-    printk(KERN_ERR "%s() %d\n", __FUNCTION__, d->irq);
-}
-
 static void disable_msd7818_irq(struct irq_data *d)
 {
     int irq = d->irq;
-    printk(KERN_ERR "%s() %d\n", __FUNCTION__, irq);
     if (irq == E_IRQ_FIQ_ALL)
     {
         REG(REG_IRQ_MASK_L) |= IRQL_ALL;
@@ -153,7 +145,6 @@ static struct irq_chip msd7818_irq_type = {
     .name = "msd7818-irq",
     .irq_mask = disable_msd7818_irq,
     .irq_unmask = enable_msd7818_irq,
-    .irq_ack	= ack_msd7818_irq,
 };
 
 void __init arch_init_irq(void)
@@ -209,8 +200,6 @@ static void hw0_dispatch(void)
 
         cause_low = (__u16)REG(REG_IRQ_PENDING_L);
         cause_high = (__u16)REG(REG_IRQ_PENDING_H);
-
-        printk(KERN_ERR "%04x %04x %08x\n", cause_low, cause_high, IRQL_UART);
 
         if ( cause_low & IRQL_UART )
         {
@@ -322,7 +311,7 @@ asmlinkage void plat_irq_dispatch(void)
         hw0_dispatch();
     else if (irq == 3)
         hw0_dispatch();
-    if (irq >= 0)
+    else if (irq >= 0)
         do_IRQ(MIPS_CPU_IRQ_BASE + irq);
     else
         spurious_interrupt();

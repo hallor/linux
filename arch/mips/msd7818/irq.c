@@ -33,7 +33,7 @@
 
 #include "irq_msd7818.h"
 
-// TODO: replace with ioread/write - for mips this is probably no great deal as IO memory is always at the same address
+// TODO: replace with ioread/write, update base address to 0x1F203200
 #define REG(addr) (*(volatile unsigned int *)(addr))
 
 // INTERRUPTS

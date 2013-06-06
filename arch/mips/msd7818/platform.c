@@ -21,6 +21,7 @@
 #include <linux/types.h>
 #include <linux/module.h>
 #include <asm/bootinfo.h>
+#include <asm/reboot.h>
 #include <linux/io.h> // To satisfy dependencies of below - TODO: kernel bug?
 #include <asm/mips_machine.h>
 #include <linux/platform_device.h>
@@ -40,11 +41,26 @@ const char *get_system_type(void)
 
 void __init msd7818_clocks_init(void);
 
+static void msd7818_shutdown(void) {
+    void __iomem * base = ioremap(0x1F006000, 0x20);
+    __u32 count = 12000000; // WDT timer has 12MHZ (??)
+    iowrite32(count & 0xFFFF, base + 0x10); // WDT_PERIOD_L
+    iowrite32((count>>16) & 0xFFFF, base + 0x14); // WDT_PERIOD_H
+}
+
+static void msd7818_restart(char *command)
+{
+    msd7818_shutdown();
+}
+
 void __init plat_mem_setup(void)
 {
     add_memory_region(0, 64*1024*1024, BOOT_MEM_RAM);
     // TODO: this has to be called probably somewhere else
     msd7818_clocks_init();
+    // TODO: there is probably better place for that + replace it with watchdog driver..
+    _machine_restart = msd7818_restart;
+    _machine_halt = msd7818_shutdown;
 }
 
 void __init prom_init(void)
@@ -63,7 +79,7 @@ static struct plat_serial8250_port msd7818_uart_data[] = {
 //    .irq = 8,
     .regshift = 3,
     .flags		= (UPF_SKIP_TEST | UPF_FIXED_TYPE | UPF_FIXED_PORT | UPF_IOREMAP),
-    .uartclk = 115200*16 * 42,
+    .uartclk = 115200 * 16 * 42,
     .type = PORT_16550A,
     .iotype = UPIO_MEM32,
     .mapbase = UART_BASE,

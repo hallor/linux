@@ -21,6 +21,8 @@
 #include <linux/types.h>
 #include <linux/module.h>
 #include <asm/bootinfo.h>
+#include <linux/io.h> // To satisfy dependencies of below - TODO: kernel bug?
+#include <asm/mips_machine.h>
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
 
@@ -43,6 +45,10 @@ void __init plat_mem_setup(void)
     add_memory_region(0, 64*1024*1024, BOOT_MEM_RAM);
     // TODO: this has to be called probably somewhere else
     msd7818_clocks_init();
+}
+
+void __init prom_init(void)
+{
 }
 
 void __init prom_free_prom_memory(void)

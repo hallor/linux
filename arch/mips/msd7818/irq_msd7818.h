@@ -67,7 +67,7 @@
 typedef enum
 {
     //IRQ
-    E_IRQL_START            = MSTAR_INT_BASE,
+    E_IRQL_START            = MSD7818_INT_BASE,
     E_IRQ_UART              = E_IRQL_START+0,   /*Titania PIU UART for MIPS*/
     E_IRQ_MVD               = E_IRQL_START+3,
     E_IRQ_AESDMA            = E_IRQL_START+4,
@@ -76,9 +76,9 @@ typedef enum
     E_IRQ_DEB               = E_IRQL_START+10,
     E_IRQ_SBM               = E_IRQL_START+13,
     E_IRQ_COMB               = E_IRQL_START+14,
-    E_IRQL_END              = 15+MSTAR_INT_BASE,
+    E_IRQL_END              = 15+MSD7818_INT_BASE,
 
-    E_IRQH_START            = 16+MSTAR_INT_BASE,
+    E_IRQH_START            = 16+MSD7818_INT_BASE,
     E_IRQ_TSP               = E_IRQH_START+0,
     E_IRQ_VE                = E_IRQH_START+1,
     E_IRQ_CIMAX2MCU         = E_IRQH_START+2,
@@ -93,10 +93,10 @@ typedef enum
     E_IRQ_VBI               = E_IRQH_START+12,
     E_IRQ_M4V               = E_IRQH_START+13,
     E_IRQ_HDMITX            = E_IRQH_START+15,
-    E_IRQH_END              = 31+MSTAR_INT_BASE,
+    E_IRQH_END              = 31+MSD7818_INT_BASE,
 
     //IRQ EXP
-    E_IRQL_EXP_START        = 32+MSTAR_INT_BASE,
+    E_IRQL_EXP_START        = 32+MSD7818_INT_BASE,
     E_IRQ_SVD               = E_IRQL_EXP_START+0,
     E_IRQ_USB1              = E_IRQL_EXP_START+1,
     E_IRQ_UHC1              = E_IRQL_EXP_START+2,
@@ -106,29 +106,29 @@ typedef enum
     E_IRQ_DIP               = E_IRQL_EXP_START+14,
 
     E_IRQ_M4VE              = E_IRQL_EXP_START+15,
-    E_IRQL_EXP_END          = 47+MSTAR_INT_BASE,
+    E_IRQL_EXP_END          = 47+MSD7818_INT_BASE,
 
-    E_IRQH_EXP_START        = 48+MSTAR_INT_BASE,
+    E_IRQH_EXP_START        = 48+MSD7818_INT_BASE,
     E_IRQH_EXP_HDMI         = E_IRQH_EXP_START+4,
-    E_IRQH_EXP_END          = 63+MSTAR_INT_BASE,
+    E_IRQH_EXP_END          = 63+MSD7818_INT_BASE,
 
 
     //FIQ
-    E_FIQL_START            = 64+MSTAR_INT_BASE,
+    E_FIQL_START            = 64+MSD7818_INT_BASE,
     E_FIQ_DSP2_TO_MIPS      = E_FIQL_START+14,
-    E_FIQL_END              = 79+MSTAR_INT_BASE,
+    E_FIQL_END              = 79+MSD7818_INT_BASE,
 
-    E_FIQH_START            = 80+MSTAR_INT_BASE,
+    E_FIQH_START            = 80+MSD7818_INT_BASE,
     E_FIQ_VSYNC_VE4VBI      = E_FIQH_START+5,
     E_FIQ_FIELD_VE4VBI      = E_FIQH_START+6,
     E_FIQ_IR                = E_FIQH_START+11,
     E_FIQ_DSP2UP            = E_FIQH_START+13,
     E_FIQ_DSP2MIPS          = E_FIQH_START+15,
-    E_FIQH_END              = 95+MSTAR_INT_BASE,
+    E_FIQH_END              = 95+MSD7818_INT_BASE,
 
 
     //FIQ EXP
-    E_FIQL_EXP_START            = 96+MSTAR_INT_BASE,
+    E_FIQL_EXP_START            = 96+MSD7818_INT_BASE,
 
     E_FIQL_EXP_INT_8051_TO_MIPS = E_FIQL_EXP_START+4,
     E_FIQ_INT_8051_TO_MIPS      = E_FIQL_EXP_START+4,
@@ -138,14 +138,14 @@ typedef enum
     E_FIQ_INT_AEON_TO_MIPS      = E_FIQL_EXP_START+8,
     E_FIQL_EXP_INT_AEON_TO_8051 = E_FIQL_EXP_START+10,
     E_FIQ_INT_AEON_TO_8051      = E_FIQL_EXP_START+10,
-    E_FIQL_EXP_END              = 111+MSTAR_INT_BASE,
+    E_FIQL_EXP_END              = 111+MSD7818_INT_BASE,
 
-    E_FIQH_EXP_START            = 112+MSTAR_INT_BASE,
+    E_FIQH_EXP_START            = 112+MSD7818_INT_BASE,
     E_FIQH_EXP_INT_MIPS_TO_AEON = E_FIQH_EXP_START+1,
     E_FIQ_INT_MIPS_TO_AEON      = E_FIQH_EXP_START+1,
     E_FIQH_EXP_INT_MIPS_TO_8051 = E_FIQH_EXP_START+2,
     E_FIQ_INT_MIPS_TO_8051      = E_FIQH_EXP_START+2,
-    E_FIQH_EXP_END              = 127+MSTAR_INT_BASE,
+    E_FIQH_EXP_END              = 127+MSD7818_INT_BASE,
 
     E_IRQ_FIQ_ALL               = 0xFF //all IRQs & FIQs
 } InterruptNum;
@@ -228,14 +228,14 @@ typedef enum
 typedef enum
 {
     //PM IRQ
-    E_PM_IRQL_START            = MSTAR_INT_BASE,
+    E_PM_IRQL_START            = MSD7818_INT_BASE,
     E_PM_IRQ_MICOM                = E_PM_IRQL_START+2,
-    E_PM_IRQL_END              = 15+MSTAR_INT_BASE,
+    E_PM_IRQL_END              = 15+MSD7818_INT_BASE,
 
 
     //PM FIQ
-    E_PM_FIQL_START            = 16+MSTAR_INT_BASE,
-    E_PM_FIQH_END              = 31+MSTAR_INT_BASE,
+    E_PM_FIQL_START            = 16+MSD7818_INT_BASE,
+    E_PM_FIQH_END              = 31+MSD7818_INT_BASE,
 
 
     E_PM_IRQ_FIQ_ALL           = 0xFF //all IRQs & FIQs

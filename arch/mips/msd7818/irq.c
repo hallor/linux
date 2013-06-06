@@ -21,12 +21,11 @@
 // TODO: we have (probably) some generic irq controller - use it somehow in future
 
 #include <asm/irq_cpu.h>
+#include <linux/io.h> // To satisfy dependencies of below - TODO: kernel bug?
 #include <asm/mipsregs.h>
-#include <asm/time.h>
 #include <linux/clockchips.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
-#include <linux/io.h>
 #include <linux/irq.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>

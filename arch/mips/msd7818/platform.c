@@ -55,30 +55,18 @@ void __init prom_free_prom_memory(void)
 {
 }
 
-#define UART_REG(addr) *((volatile unsigned int*)(0xBF201300 + ((addr)<< 3)))
- static unsigned int uart_in(struct uart_port *p, int offset)
- {
-     return UART_REG(offset);
- }
-
- static void uart_out(struct uart_port *p, int offset, int value)
- {
-     UART_REG(offset) = value;
- }
-
+// This is _PHYSICAL_ address (after ioremap it becomes 0x8F201300 - the same probably applies to all addresses used by LG)
+// See -> http://www.johnloomis.org/microchip/pic32/memory/memory.html
+#define UART_BASE 0x1F201300
 static struct plat_serial8250_port msd7818_uart_data[] = {
 {
 //    .irq = 8,
     .regshift = 3,
-    .flags		= (UPF_SKIP_TEST | UPF_FIXED_TYPE | UPF_FIXED_PORT),
+    .flags		= (UPF_SKIP_TEST | UPF_FIXED_TYPE | UPF_FIXED_PORT | UPF_IOREMAP),
     .uartclk = 115200*16 * 42,
-    .type = PORT_8250,
+    .type = PORT_16550A,
     .iotype = UPIO_MEM32,
-    .mapbase = 0xBF201300,
-    .membase = 0,
-    .serial_in	= uart_in,
-    .serial_out	= uart_out,
-
+    .mapbase = UART_BASE,
 },
     {}
 };
@@ -93,9 +81,8 @@ static struct plat_serial8250_port msd7818_uart_data[] = {
 
 static int __init msd7818_register_devices(void)
 {
-    msd7818_uart_data[0].membase = ioremap(0xBF201300, 256);
     platform_device_register(&uart_device);
-    mips_machine_setup();    
+    mips_machine_setup();
     return 0;
 }
 arch_initcall(msd7818_register_devices);

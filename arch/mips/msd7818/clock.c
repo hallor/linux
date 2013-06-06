@@ -22,13 +22,10 @@
 #include <linux/init.h>
 #include <linux/types.h>
 #include <linux/module.h>
-#include <linux/delay.h>
-#include <linux/gcd.h>
 #include <linux/io.h>
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <asm/time.h>
-#include <asm/addrspace.h>
 
 struct clk {
 	unsigned long rate;
@@ -38,8 +35,8 @@ static struct clk msd7818_cpu_clk;
 
 void __init msd7818_clocks_init(void)
 {
-    printk(KERN_ERR "%s()\n", __FUNCTION__);
     msd7818_cpu_clk.rate = 552000000;
+    // TODO: this is probably configurable somewhere
     mips_hpt_frequency = msd7818_cpu_clk.rate / 2; // HPT frequency set by u-boot is ~ 1/2 cpu clock
 }
 
@@ -65,7 +62,7 @@ EXPORT_SYMBOL(clk_get_rate);
 
 struct clk *clk_get(struct device *dev, const char *id)
 {
-    if (!strcmp(id, "cpu"))
+    if (!strncmp(id, "cpu", 4))
         return &msd7818_cpu_clk;
     
 	return ERR_PTR(-ENOENT);
@@ -76,3 +73,10 @@ void clk_put(struct clk *clk)
 {
 }
 EXPORT_SYMBOL(clk_put);
+
+
+// Needed for clock operation (returns proper irq number for systick interrupt)
+unsigned int __cpuinit get_c0_compare_int(void)
+{
+    return CP0_LEGACY_COMPARE_IRQ;
+}

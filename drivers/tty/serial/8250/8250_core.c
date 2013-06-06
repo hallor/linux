@@ -2429,8 +2429,10 @@ serial8250_do_set_termios(struct uart_port *port, struct ktermios *termios,
 		serial_port_out(port, UART_LCR, 0xe0);
 	else
 		serial_port_out(port, UART_LCR, cval | UART_LCR_DLAB);
-
+// TODO: set speed properly, then we will not need to disable speed changing :)
+#if 0
 	serial_dl_write(up, quot);
+#endif
 
 	/*
 	 * LCR DLAB must be set to enable 64-byte FIFO mode. If the FCR
@@ -2946,8 +2948,8 @@ static struct console serial8250_console = {
 
 static int __init serial8250_console_init(void)
 {
-	serial8250_isa_init_ports();
-	register_console(&serial8250_console);
+    serial8250_isa_init_ports();
+    register_console(&serial8250_console);
 	return 0;
 }
 console_initcall(serial8250_console_init);

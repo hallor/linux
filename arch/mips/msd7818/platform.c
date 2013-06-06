@@ -96,10 +96,13 @@ static struct plat_serial8250_port msd7818_uart_data[] = {
     },
 };
 
+void ir_init(void);
+
 static int __init msd7818_register_devices(void)
 {
     platform_device_register(&uart_device);
     mips_machine_setup();
+    ir_init();
     return 0;
 }
 arch_initcall(msd7818_register_devices);

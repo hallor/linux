@@ -23,7 +23,7 @@ static void watchdog_timer(unsigned long data)
 
     // Update registers
     {
-        __u32 count = 6 * 12000000; // WDT timer has 12MHZ (??) - 6sec timeout
+        __u32 count = 6 * 12000000; // WDT has 12MHZ (??) - 6sec timeout
         iowrite32(count & 0xFFFF, wd->regs + 0x10); // WDT_PERIOD_L
         iowrite32((count>>16) & 0xFFFF, wd->regs + 0x14); // WDT_PERIOD_H
     }
@@ -51,11 +51,17 @@ static int watchdog_probe(struct platform_device *pdev) {
 
     wd->pdev = pdev;
 
+    if (request_mem_region(res->start, resource_size(res), pdev->name) < 0) {
+        dev_err(&pdev->dev, "Failed to request resources.\n");
+        ret = -ENOMEM;
+        goto free;
+    }
+
     wd->regs = devm_ioremap(&pdev->dev, res->start, resource_size(res));
     if (!wd->regs) {
         dev_err(&pdev->dev, "ioremap failed.\n");
         ret = -ENOMEM;
-        goto free;
+        goto release;
     }
 
     init_timer(&wd->timer);
@@ -69,6 +75,8 @@ static int watchdog_probe(struct platform_device *pdev) {
 
     return 0;
 
+release:
+    release_mem_region(res->start, resource_size(res));
 free:
     kfree(wd);
     return ret;

@@ -1,16 +1,17 @@
 #include <linux/io.h>
 #include <linux/interrupt.h>
+#include <linux/platform_device.h>
 
 #include "ir.h"
 #include "irq_msd7818.h"
 
 static void __iomem * base = NULL;
 
-__u32 reg_read(int offs) {
+static __u32 reg_read(int offs) {
     return ioread32(base + (offs << 2) );
 }
 
-void reg_write(__u32 value, int offs) {
+static void reg_write(__u32 value, int offs) {
     iowrite32(value, base + (offs << 2));
 }
 
@@ -21,7 +22,7 @@ static irqreturn_t ir_interrupt(int irq, void *dev_id)
     return IRQ_HANDLED;
 }
 
-void ir_init(void)
+void ir_do_init(void)
 {
     int ret;
     printk(KERN_ERR "Registering IR driver...\n");
@@ -46,4 +47,31 @@ void ir_init(void)
                            IR_EN, REG_IR_CTRL);
 
     printk(KERN_ERR "Finised.\n");
+}
+
+static int ir_probe(struct platform_device *pdev) {
+    printk(KERN_ERR "%s():%d\n", __FUNCTION__, __LINE__);
+    return 0;
+}
+
+static int ir_remove(struct platform_device *pdev) {
+    return 0;
+}
+
+static struct platform_driver ir_driver = {
+    .probe = ir_probe,
+    .remove = ir_remove,
+    .driver = {
+        .name = "msd7818-ir",
+        .owner = THIS_MODULE,
+    },
+};
+
+static int __init ir_init(void) {
+    return platform_driver_register(&ir_driver);
+}
+late_initcall(ir_init);
+
+static void __exit ir_exit(void) {
+    platform_driver_unregister(&ir_driver);
 }

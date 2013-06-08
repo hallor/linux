@@ -62,47 +62,86 @@ void __init plat_mem_setup(void)
     // TODO: there is probably better place for that + replace it with watchdog driver..
     _machine_restart = msd7818_restart;
     _machine_halt = msd7818_shutdown;
+    // restart watchdog to some enormous value (it's started by bootloader)
+    {
+        void __iomem * base = ioremap(0x1F006000, 0x20);
+        __u32 count = 0xFFFFFFFF; // WDT timer has 12MHZ (??)
+        iowrite32(count & 0xFFFF, base + 0x10); // WDT_PERIOD_L
+        iowrite32((count>>16) & 0xFFFF, base + 0x14); // WDT_PERIOD_H
+        iounmap(base);
+    }
 }
 
-void __init prom_init(void)
-{
-}
+void __init prom_init(void) {}
 
-void __init prom_free_prom_memory(void)
-{
-}
+void __init prom_free_prom_memory(void) {}
 
 // This is _PHYSICAL_ address (after ioremap it becomes 0x8F201300 - the same probably applies to all addresses used by LG)
 // See -> http://www.johnloomis.org/microchip/pic32/memory/memory.html
 #define UART_BASE 0x1F201300
-static struct plat_serial8250_port msd7818_uart_data[] = {
-{
-    .irq = E_IRQ_UART,
-    .regshift = 3,
-    .flags		= (UPF_SKIP_TEST | UPF_FIXED_TYPE | UPF_FIXED_PORT | UPF_IOREMAP),
-    .uartclk = 115200 * 16 * 66,
-    .type = PORT_16550A,
-    .iotype = UPIO_MEM32,
-    .mapbase = UART_BASE,
-},
+static struct plat_serial8250_port uart_data[] = {
+    {
+        .irq = E_IRQ_UART,
+        .regshift = 3,
+        .flags		= (UPF_SKIP_TEST | UPF_FIXED_TYPE | UPF_FIXED_PORT | UPF_IOREMAP),
+        .uartclk = 115200 * 16 * 66,
+        .type = PORT_16550A,
+        .iotype = UPIO_MEM32,
+        .mapbase = UART_BASE,
+    },
     {}
 };
 
- struct platform_device uart_device = {
-    .name		= "serial8250",
-    .id		= PLAT8250_DEV_PLATFORM,
-    .dev = {
-        .platform_data = msd7818_uart_data,
+static struct platform_device uart_device = {
+    .name   = "serial8250",
+    .id     = PLAT8250_DEV_PLATFORM,
+    .dev.platform_data = uart_data,
+};
+
+static struct resource ir_resources[] = {
+    [0] = {
+        .start = 0x1F007B00,
+        .end = 0x1F007B20,
+        .flags = IORESOURCE_MEM,
+    },
+    [1] = {
+        .start = E_FIQ_IR,
+        .end = E_FIQ_IR,
+        .flags = IORESOURCE_IRQ,
     },
 };
 
-void ir_init(void);
+static struct platform_device ir_device = {
+    .name = "msd7818-ir",
+    .num_resources = ARRAY_SIZE(ir_resources),
+    .resource = ir_resources,
+};
+
+static struct resource watchdog_resources[] = {
+    [0] = {
+        .start = 0x1F006000,
+        .end = 0x1F006020, // TODO: find registers
+        .flags = IORESOURCE_MEM,
+    },
+};
+
+static struct platform_device watchdog_device = {
+    .name = "msd7818-watchdog",
+    .num_resources = ARRAY_SIZE(watchdog_resources),
+    .resource = watchdog_resources,
+};
+
+
+struct platform_device *devices[] __initdata = {
+    &uart_device,
+    &ir_device,
+    &watchdog_device,
+};
 
 static int __init msd7818_register_devices(void)
 {
-    platform_device_register(&uart_device);
+    platform_add_devices(devices, ARRAY_SIZE(devices));
     mips_machine_setup();
-    ir_init();
     return 0;
 }
 arch_initcall(msd7818_register_devices);

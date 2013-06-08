@@ -1,0 +1,10 @@
+choice
+	prompt "Board support"
+	depends on MSD7818
+	default BOARD_WIWA_HD100_NEW
+
+config BOARD_WIWA_HD100_NEW
+			 bool "WIWA HD100 NEW"
+			 help
+
+endchoice

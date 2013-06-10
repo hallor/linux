@@ -8,6 +8,7 @@
 #include <linux/platform_device.h>
 #include <linux/printk.h>
 #include <linux/slab.h>
+#include <linux/err.h>
 
 struct watchdog_device {
     struct platform_device * pdev;
@@ -51,17 +52,11 @@ static int watchdog_probe(struct platform_device *pdev) {
 
     wd->pdev = pdev;
 
-    if (request_mem_region(res->start, resource_size(res), pdev->name) < 0) {
+    wd->regs = devm_request_and_ioremap(&pdev->dev, res);
+    if (IS_ERR(wd->regs)) {
         dev_err(&pdev->dev, "Failed to request resources.\n");
-        ret = -ENOMEM;
+        ret = PTR_ERR(wd->regs);
         goto free;
-    }
-
-    wd->regs = devm_ioremap(&pdev->dev, res->start, resource_size(res));
-    if (!wd->regs) {
-        dev_err(&pdev->dev, "ioremap failed.\n");
-        ret = -ENOMEM;
-        goto release;
     }
 
     init_timer(&wd->timer);
@@ -75,8 +70,6 @@ static int watchdog_probe(struct platform_device *pdev) {
 
     return 0;
 
-release:
-    release_mem_region(res->start, resource_size(res));
 free:
     kfree(wd);
     return ret;

@@ -193,7 +193,7 @@ static inline unsigned int irq_ffs(unsigned int pending)
 }
 
 // Dispatch interrupts from controller
-static void hw0_dispatch(void)
+static void dispatch_irq(void)
 {
     {
         __u16 cause_low,cause_high;
@@ -204,6 +204,8 @@ static void hw0_dispatch(void)
         if ( cause_low & IRQL_UART )
         {
             do_IRQ((unsigned int)E_IRQ_UART);
+        } else {
+            printk(KERN_ERR "irq %04x %04x\n", cause_low, cause_high);
         }
 
         if ( cause_low & IRQL_MVD )
@@ -295,8 +297,19 @@ static void hw0_dispatch(void)
             do_IRQ((unsigned int)E_IRQH_EXP_HDMI);
         }
     }
-
 }
+
+static void dispatch_fiq(void)
+{
+    unsigned short cause_high;
+
+    cause_high = REG(REG_FIQ_PENDING_H);
+    if ( cause_high & FIQH_IR )
+    {
+        do_IRQ((unsigned int)E_FIQ_IR);
+    }
+}
+
 
 
 asmlinkage void plat_irq_dispatch(void)
@@ -308,9 +321,9 @@ asmlinkage void plat_irq_dispatch(void)
 
     // TODO: probably hw0_dispatch should be split or sth
     if (irq == 2)
-        hw0_dispatch();
+        dispatch_irq();
     else if (irq == 3)
-        hw0_dispatch();
+        dispatch_fiq();
     else if (irq >= 0)
         do_IRQ(MIPS_CPU_IRQ_BASE + irq);
     else

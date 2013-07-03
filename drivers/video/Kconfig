@@ -2453,6 +2453,15 @@ config FB_HYPERV
 	help
 	  This framebuffer driver supports Microsoft Hyper-V Synthetic Video.
 
+config FB_MSTAR
+	bool "MSD7818 framebuffer support"
+	depends on (FB = y)
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	help
+		Simple framebuffer using pre-initialized stuff.
+
 config FB_SIMPLE
 	bool "Simple framebuffer support"
 	depends on (FB = y) && OF

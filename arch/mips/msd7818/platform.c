@@ -26,7 +26,7 @@
 #include <asm/mips_machine.h>
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
-
+#include <video/msd7818fb.h>
 #include "irq_msd7818.h"
 // Inspired by various pieces of code
 
@@ -56,7 +56,9 @@ static void msd7818_restart(char *command)
 
 void __init plat_mem_setup(void)
 {
-    add_memory_region(0, 64*1024*1024, BOOT_MEM_RAM);
+    // Cut hole for framebuffer
+    add_memory_region(0, 0x2100000, BOOT_MEM_RAM);
+    add_memory_region(0x2100000 + 1920 * 1080 * 4, 64*1024*1024 - 1920 * 1080 * 4 - 0x2100000, BOOT_MEM_RAM);
     // TODO: this has to be called probably somewhere else
     msd7818_clocks_init();
     // TODO: there is probably better place for that + replace it with watchdog driver..
@@ -132,10 +134,27 @@ static struct platform_device watchdog_device = {
 };
 
 
+static struct plat_msd7818_fb  framebuffer_data =
+{
+    .iobase = 0x2100000,
+    .size = 1920 * 1080 * 4,
+    .width = 1920,
+    .height = 1080,
+    .depth = 16,
+    .mode = MODE_ARGB4444,
+    .duplicate_paints = 1,
+};
+
+static struct platform_device framebuffer_device = {
+    .name = "msd7818-fb",
+    .dev.platform_data = &framebuffer_data,
+};
+
 struct platform_device *devices[] __initdata = {
     &uart_device,
     &ir_device,
     &watchdog_device,
+    &framebuffer_device,
 };
 
 static int __init msd7818_register_devices(void)

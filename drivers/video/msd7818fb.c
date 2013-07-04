@@ -7,84 +7,51 @@
 #include <linux/platform_device.h>
 #include <video/msd7818fb.h>
 
-static struct fb_fix_screeninfo simplefb_fix = {
+static struct fb_fix_screeninfo msd7818_fix = {
     .id		= "msd7818",
     .type		= FB_TYPE_PACKED_PIXELS,
     .visual		= FB_VISUAL_TRUECOLOR,
     .accel		= FB_ACCEL_NONE,
 };
 
-static struct fb_var_screeninfo simplefb_var = {
+static struct fb_var_screeninfo msd7818_var = {
     .height		= -1,
     .width		= -1,
     .activate	= FB_ACTIVATE_NOW,
     .vmode		= FB_VMODE_NONINTERLACED,
 };
 
-__u16 color2(int r, int g, int b) {
-    return ( 0xF000 | ((r << 4) & 0xF00) |
-             (g & 0xF0) |
-             ((b >> 4) & 0xF) );
-}
-
+// TODO: remove hardcodes
 #define screen_w (1920)
 #define screen_h (1080)
 #define frame_size (1920 * 1080 * 2)
-static void * screen = (void*) 0xa2100000;
-
-inline void memset32(void *s, __u32 __c, size_t __n) {
-    __u32 * __s = s;
-    while (__n--) {
-        *__s++ = __c;
-    }
-}
-
-void screen_line(int sx, int sy, int w, __u16 col)
-{
-    __u32 c = col | (col << 16);
-    if (w > 1) {
-        memset32(screen + (sy * screen_w + sx) * 2, c, (w - (w % 2)) / 2);
-        memset32(screen + frame_size  + (sy * screen_w + sx) * 2, c, (w - (w % 2)) / 2);
-    }
-
-    if (w % 2) {
-        *(__u16*)(screen + (sy * screen_w + sx + w - 1) * 2) = col;
-        *(__u16*)(screen + frame_size  + (sy * screen_w + sx + w - 1) * 2) = col;
-    }
-}
-
-// src must be screen size
-void screen_line_blit(void * src, int sx, int sy, int dx, int dy, int w)
-{
-    memcpy(screen + (dy * screen_w + dx) * 2,
-           src + (sy * screen_w + sx) * 2, w * 2);
-    memcpy(screen + frame_size + (dy * screen_w + dx) * 2,
-           src + (sy * screen_w + sx) * 2, w * 2);
-}
 
 inline void draw_pixel_screen(void *dst, int x, int y, __u16 col) {
     ((__u16*)dst)[ y * screen_w + x ] = col;
-    ((__u16*)(dst + frame_size))[ y * screen_w + x ] = col;
+}
+
+// Copies data from primary to secondary buffer
+static void update_second_buffer(struct fb_info * info, int sx, int sy, int ex, int ey) {
+    if (sx > ex || sy > ey) {
+        pr_err("%s(): Unable to update buffer\n", __FUNCTION__);
+        return;
+    }
+
+    for (; sy < ey; ++sy)
+        memcpy(info->screen_base + frame_size + (sy * screen_w + sx) * 2,
+               info->screen_base + (sy * screen_w + sx) * 2, (ex - sx) * 2);
 }
 
 static void fillrect(struct fb_info *info, const struct fb_fillrect *rect) {
-    int line = 0;
-    pr_err("%s() (%dx%d) [%dx%d] (%x)\n", __FUNCTION__,
-           rect->dx, rect->dy, rect->width, rect->height, rect->color);
-    for (line=rect->dy; line < rect->dy + rect->height; ++line)
-        screen_line(rect->dx, line, rect->width, rect->color);
-//    cfb_fillrect(info, rect);
+    cfb_fillrect(info, rect);
+    update_second_buffer(info, rect->dx, rect->dy, rect->dx + rect->width, rect->dy + rect->height);
 }
 
+// TODO: check if working properly
 static void copyarea(struct fb_info *info, const struct fb_copyarea *area) {
     pr_err("%s()\n", __FUNCTION__);
     cfb_copyarea(info, area);
-}
-
-void screen_line_copy(void * dst, void * src, int sx, int sy, int dx, int dy, int w)
-{
-    memcpy(dst + (dy * screen_w + dx) * 2,
-           src + (sy * screen_w + sx) * 2, w * 2);
+    update_second_buffer(info, area->dx, area->dy, area->dx + area->width, area->dy + area->height);
 }
 
 static void imageblit(struct fb_info *info, const struct fb_image *image) {
@@ -92,37 +59,64 @@ static void imageblit(struct fb_info *info, const struct fb_image *image) {
     if (image->depth != 1)
         cfb_imageblit(info, image);
     else {
+        __u32 *pal = info->pseudo_palette;
+        __u16 fg = 0xFFFF, bg = 0xFFFF;
+        if (image->fg_color < 16)
+            fg = pal[image->fg_color];
+        if (image->bg_color < 16)
+            bg = pal[image->bg_color];
+
         for (y = 0; y < image->height; ++y) {
             for (x = 0; x < image->width; ++x) {
                 if (image->data[(y * image->width + x) / 8] & (1 << (7 - (x % 8))))
-                    draw_pixel_screen(screen, x + image->dx, y + image->dy, 0xFFFF);
+                    draw_pixel_screen(info->screen_base, x + image->dx, y + image->dy, fg);
                 else
-                    draw_pixel_screen(screen, x + image->dx, y + image->dy, 0x0);
+                    draw_pixel_screen(info->screen_base, x + image->dx, y + image->dy, bg);
             }
         }
     }
     // copy to bottom buffer
-    for (y = image->dy; y < image->dy + image->height; ++y)
-        screen_line_copy(screen + frame_size, screen, image->dx, y, image->dx, y, image->width);
+    update_second_buffer(info, image->dx, image->dy, image->dx + image->width, image->dy + image->height);
 }
 
-ssize_t fb_read(struct fb_info *info, char __user *buf,
+static ssize_t fb_read(struct fb_info *info, char __user *buf,
            size_t count, loff_t *ppos) {
     if (count > frame_size)
         return -EFBIG;
-    copy_to_user(buf, screen, count);
+    copy_to_user(buf, info->screen_base, count);
     pr_err("%s()\n", __FUNCTION__);
     return count;
 }
 
-ssize_t fb_write(struct fb_info *info, const char __user *buf,
+static ssize_t fb_write(struct fb_info *info, const char __user *buf,
             size_t count, loff_t *ppos) {
     if (count > frame_size)
         return -EFBIG;
-    copy_from_user(screen, buf, count);
-    copy_from_user(screen+frame_size, buf, count);
+    copy_from_user(info->screen_base, buf, count);
+    copy_from_user(info->screen_base+frame_size, buf, count);
     pr_err("%s()\n", __FUNCTION__);
     return count;
+}
+
+// For now disallow mmap()
+static int fb_mmap(struct fb_info *fbi, struct vm_area_struct *vma) {
+    return -EINVAL;
+}
+
+
+static int fb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
+                  u_int transp, struct fb_info *info)
+{
+    u32 *pal = info->pseudo_palette;
+
+    if (regno >= 16)
+        return -EINVAL;
+
+    pal[regno] = ( 0xF000 | ((red << 4) & 0xF00) |
+                   (green & 0xF0) |
+                   ((blue >> 4) & 0xF) );
+
+    return 0;
 }
 
 static struct fb_ops msd7818fb_ops = {
@@ -132,6 +126,8 @@ static struct fb_ops msd7818fb_ops = {
     .fb_imageblit	= imageblit,
     .fb_read = fb_read,
     .fb_write = fb_write,
+    .fb_mmap = fb_mmap,
+    .fb_setcolreg = fb_setcolreg,
 };
 
 struct video_mode {
@@ -144,14 +140,7 @@ struct video_mode {
 };
 
 static struct video_mode video_modes[] = {
-    { "Xrgb4444", 16, {7, 4}, {4, 4}, {0, 4}, {0, 0} },
-};
-
-struct simplefb_params {
-    u32 width;
-    u32 height;
-    u32 stride;
-    struct video_mode *mode;
+    { "argb4444", 16, {7, 4}, {4, 4}, {0, 4}, {0, 0} },
 };
 
 static int fb_probe(struct platform_device *pdev)
@@ -167,20 +156,21 @@ static int fb_probe(struct platform_device *pdev)
         return -ENODEV;
     }
 
-    info = framebuffer_alloc(0, &pdev->dev);
+    info = framebuffer_alloc(sizeof(u32) * 16, &pdev->dev);
     if (!info) {
         dev_err(&pdev->dev, "Failed to allocate framebuffer.\n");
         return -ENOMEM;
     }
+    info->pseudo_palette = (void *)(info + 1);
 
     platform_set_drvdata(pdev, info);
 
-    info->fix = simplefb_fix;
+    info->fix = msd7818_fix;
     info->fix.smem_start = pdata->iobase;
     info->fix.smem_len = pdata->size;
     info->fix.line_length = pdata->width * pdata->depth / 8;
 
-    info->var = simplefb_var;
+    info->var = msd7818_var;
     info->var.xres = pdata->width;
     info->var.yres = pdata->height;
     info->var.xres_virtual = pdata->width;
@@ -202,6 +192,7 @@ static int fb_probe(struct platform_device *pdev)
     info->fbops = &msd7818fb_ops;
     info->flags = FBINFO_DEFAULT;
     info->screen_base = devm_ioremap(&pdev->dev, pdata->iobase, pdata->size);
+    info->screen_size = pdata->size;
     if (!info->screen_base) {
         dev_err(&pdev->dev, "ioremap failed.\n");
         ret = -ENOMEM;

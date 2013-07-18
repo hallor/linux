@@ -21,15 +21,6 @@ static struct fb_var_screeninfo msd7818_var = {
     .vmode		= FB_VMODE_NONINTERLACED,
 };
 
-// TODO: remove hardcodes
-#define screen_w (1920)
-#define screen_h (1080)
-#define frame_size (1920 * 1080 * 2)
-
-inline void draw_pixel_screen(void *dst, int x, int y, __u16 col) {
-    ((__u16*)dst)[ y * screen_w + x ] = col;
-}
-
 // Copies data from primary to secondary buffer
 static void update_second_buffer(struct fb_info * info, int sx, int sy, int ex, int ey) {
     if (sx > ex || sy > ey) {
@@ -38,8 +29,8 @@ static void update_second_buffer(struct fb_info * info, int sx, int sy, int ex, 
     }
 
     for (; sy < ey; ++sy)
-        memcpy(info->screen_base + frame_size + (sy * screen_w + sx) * 2,
-               info->screen_base + (sy * screen_w + sx) * 2, (ex - sx) * 2);
+        memcpy(info->screen_base + info->screen_size / 2 + (sy * info->var.xres + sx) * 2,
+               info->screen_base + (sy * info->var.xres + sx) * 2, (ex - sx) * 2);
 }
 
 static void fillrect(struct fb_info *info, const struct fb_fillrect *rect) {
@@ -69,40 +60,15 @@ static void imageblit(struct fb_info *info, const struct fb_image *image) {
         for (y = 0; y < image->height; ++y) {
             for (x = 0; x < image->width; ++x) {
                 if (image->data[(y * image->width + x) / 8] & (1 << (7 - (x % 8))))
-                    draw_pixel_screen(info->screen_base, x + image->dx, y + image->dy, fg);
+                    ((__u16*)info->screen_base)[ (y + image->dy) * info->var.xres + x + image->dx] = fg;
                 else
-                    draw_pixel_screen(info->screen_base, x + image->dx, y + image->dy, bg);
+                    ((__u16*)info->screen_base)[ (y + image->dy) * info->var.xres + x + image->dx] = bg;
             }
         }
     }
     // copy to bottom buffer
     update_second_buffer(info, image->dx, image->dy, image->dx + image->width, image->dy + image->height);
 }
-
-static ssize_t fb_read(struct fb_info *info, char __user *buf,
-           size_t count, loff_t *ppos) {
-    if (count > frame_size)
-        return -EFBIG;
-    copy_to_user(buf, info->screen_base, count);
-    pr_err("%s()\n", __FUNCTION__);
-    return count;
-}
-
-static ssize_t fb_write(struct fb_info *info, const char __user *buf,
-            size_t count, loff_t *ppos) {
-    if (count > frame_size)
-        return -EFBIG;
-    copy_from_user(info->screen_base, buf, count);
-    copy_from_user(info->screen_base+frame_size, buf, count);
-    pr_err("%s()\n", __FUNCTION__);
-    return count;
-}
-
-// For now disallow mmap()
-static int fb_mmap(struct fb_info *fbi, struct vm_area_struct *vma) {
-    return -EINVAL;
-}
-
 
 static int fb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
                   u_int transp, struct fb_info *info)
@@ -124,9 +90,6 @@ static struct fb_ops msd7818fb_ops = {
     .fb_fillrect	= fillrect,
     .fb_copyarea	= copyarea,
     .fb_imageblit	= imageblit,
-    .fb_read = fb_read,
-    .fb_write = fb_write,
-    .fb_mmap = fb_mmap,
     .fb_setcolreg = fb_setcolreg,
 };
 
